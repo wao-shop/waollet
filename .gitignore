@@ -1,0 +1,6 @@
+# environment
+.env/
+.vscode/
+
+# built using make
+contracts/
