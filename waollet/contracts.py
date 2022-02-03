@@ -54,8 +54,18 @@ def approval_program():
         Approve(),
     )
 
-    # TODO implement on_unstake
-    on_unstake = Approve()
+    amount_to_unstake = Txn.application_args[1]
+    assetId = Txn.application_args[2]
+    on_unstake = Seq(
+        If(App.localGet(Txn.sender(), staked_key) >= amount_to_unstake)
+        .Then(
+            unstake(assetId, Txn.sender(), amount_to_unstake),
+            Approve(),
+        )
+        .Else(
+            Reject(),
+        )
+    )
 
     on_call_method = Txn.application_args[0]
     on_call = Cond(
