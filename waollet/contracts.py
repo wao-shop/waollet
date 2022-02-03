@@ -5,6 +5,21 @@ def approval_program():
     amount_key = Bytes("amount")
     staked_key = Bytes("staked")
 
+    @Subroutine(TealType.none)
+    def unstake(assetId: Expr, receiver: Expr, amount: Expr) -> Expr:
+        return Seq(
+            InnerTxnBuilder.Begin(),
+            InnerTxnBuilder.SetField(
+                {
+                    TxnField.type_enum: TxnType.AssetTransfer,
+                    TxnField.xfer_asset: assetId,
+                    TxnField.amount: amount,
+                    TxnField.asset_receiver: receiver,
+                }
+            ),
+            InnerTxnBuilder.Submit(),
+        )
+
     on_create = Seq(
         App.globalPut(amount_key, Int(0)),
         Approve(),
@@ -22,6 +37,7 @@ def approval_program():
         Assert(
             And(
                 Gtxn[on_stake_txn_index].type_enum() == TxnType.AssetTransfer,
+                # TODO validate if assetID is to the USDC (Txn.config_asset())
                 Gtxn[on_stake_txn_index].sender() == Txn.sender(),
                 Gtxn[on_stake_txn_index].receiver()
                 == Global.current_application_address(),  # TODO should we use another address here? like an "liquidity pool"
