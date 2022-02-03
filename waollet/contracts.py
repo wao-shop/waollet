@@ -37,7 +37,7 @@ def approval_program():
         Assert(
             And(
                 Gtxn[on_stake_txn_index].type_enum() == TxnType.AssetTransfer,
-                # TODO validate if assetID is to the USDC (Txn.config_asset())
+                Gtxn[on_stake_txn_index].xfer_asset() == Txn.application_args[1],
                 Gtxn[on_stake_txn_index].sender() == Txn.sender(),
                 Gtxn[on_stake_txn_index].receiver()
                 == Global.current_application_address(),  # TODO should we use another address here? like an "liquidity pool"
