@@ -2,5 +2,9 @@
 .env/
 .vscode/
 
+# python files
+__pycache__/
+.pytest_cache/
+
 # built using make
 contracts/
