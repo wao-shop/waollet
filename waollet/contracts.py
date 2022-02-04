@@ -9,7 +9,7 @@ def approval_program():
     def unstake(assetId: Expr, receiver: Expr, amount: Expr) -> Expr:
         return Seq(
             InnerTxnBuilder.Begin(),
-            InnerTxnBuilder.SetField(
+            InnerTxnBuilder.SetFields(
                 {
                     TxnField.type_enum: TxnType.AssetTransfer,
                     TxnField.xfer_asset: assetId,
@@ -37,7 +37,7 @@ def approval_program():
         Assert(
             And(
                 Gtxn[on_stake_txn_index].type_enum() == TxnType.AssetTransfer,
-                Gtxn[on_stake_txn_index].xfer_asset() == Txn.application_args[1],
+                Gtxn[on_stake_txn_index].xfer_asset() == Txn.assets[0],
                 Gtxn[on_stake_txn_index].sender() == Txn.sender(),
                 Gtxn[on_stake_txn_index].receiver()
                 == Global.current_application_address(),  # TODO should we use another address here? like an "liquidity pool"
@@ -54,13 +54,15 @@ def approval_program():
         Approve(),
     )
 
-    amount_to_unstake = Txn.application_args[1]
-    assetId = Txn.application_args[2]
+    amount_to_unstake = Btoi(Txn.application_args[1])
+    assetId = Txn.assets[0]
     on_unstake = Seq(
         If(App.localGet(Txn.sender(), staked_key) >= amount_to_unstake)
         .Then(
-            unstake(assetId, Txn.sender(), amount_to_unstake),
-            Approve(),
+            Seq(
+                unstake(assetId, Txn.sender(), amount_to_unstake),
+                Approve(),
+            )
         )
         .Else(
             Reject(),
