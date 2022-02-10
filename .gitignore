@@ -10,3 +10,4 @@ __pycache__/
 contracts/
 
 waollet_cli.egg-info/
+.venv
