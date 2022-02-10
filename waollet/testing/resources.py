@@ -73,12 +73,12 @@ def getTemporaryAccount(client: AlgodClient) -> Account:
     return accountList.pop()
 
 
-def optInToAsset(
-    client: AlgodClient, assetID: int, account: Account
+def optInToApplication(
+    client: AlgodClient, appID: int, account: Account
 ) -> PendingTxnResponse:
-    txn = transaction.AssetOptInTxn(
+    txn = transaction.ApplicationOptInTxn(
         sender=account.getAddress(),
-        index=assetID,
+        index=appID,
         sp=client.suggested_params(),
     )
     signedTxn = txn.sign(account.getPrivateKey())

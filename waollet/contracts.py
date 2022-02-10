@@ -14,10 +14,11 @@ def approval_program():
     @Subroutine(TealType.uint64)
     def calculateYieldTotal(sender: Expr) -> Int:
         staking_balance = App.localGet(sender, staked_key)
-        elapsed_time = App.localGet(sender, startTime_key) - Global.latest_timestamp()
+        elapsed_time = (Global.latest_timestamp() - App.localGet(sender, startTime_key)) * Int(10**8)
         rate = elapsed_time / Int(86400)
 
-        return (elapsed_time * rate) 
+        return (staking_balance * rate)  / Int(10**8)
+
 
     @Subroutine(TealType.none)
     def unstake(receiver: Expr, amount: Expr) -> Expr:
@@ -27,7 +28,7 @@ def approval_program():
                 {
                     TxnField.type_enum: TxnType.Payment,
                     TxnField.amount: amount,
-                    TxnField.asset_receiver: receiver,
+                    TxnField.receiver: receiver,
                 }
             ),
             InnerTxnBuilder.Submit(),

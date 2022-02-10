@@ -95,6 +95,18 @@ def getAppGlobalState(
     return decodeState(appInfo["params"]["global-state"])
 
 
+def getAppLocalState(
+    client: AlgodClient, appID: int, account: str 
+) -> Dict[bytes, Union[int, bytes]]:
+    accountInfo = client.account_info(account)
+    for appLocalState in accountInfo["apps-local-state"]:
+        if appLocalState['id'] == appID:
+            appLocalInfo = appLocalState
+            break
+            
+    return decodeState(appLocalInfo["key-value"])
+
+
 def getBalances(client: AlgodClient, account: str) -> Dict[int, int]:
     balances: Dict[int, int] = dict()
 
