@@ -1,7 +1,7 @@
-from typing import Optional, List
+from typing import List, Optional
 
-from algosdk.v2client.algod import AlgodClient
 from algosdk.kmd import KMDClient
+from algosdk.v2client.algod import AlgodClient
 
 from ..account import Account
 
@@ -9,8 +9,8 @@ ALGOD_ADDRESS = "http://localhost:4001"
 ALGOD_TOKEN = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 
-def getAlgodClient() -> AlgodClient:
-    return AlgodClient(ALGOD_TOKEN, ALGOD_ADDRESS)
+def getAlgodClient(algod_address: str = None, algod_token: str = None) -> AlgodClient:
+    return AlgodClient(algod_token or ALGOD_TOKEN, algod_address or ALGOD_ADDRESS)
 
 
 KMD_ADDRESS = "http://localhost:4002"

@@ -6,19 +6,19 @@ def approval_program():
     amount_key = Bytes("globalStakingBalance")
 
     # App Local State
-    staked_key = Bytes('stakingBalance')
-    startTime_key = Bytes('startTime')
-    yieldBalance_key = Bytes('yieldBalance')
+    staked_key = Bytes("stakingBalance")
+    startTime_key = Bytes("startTime")
+    yieldBalance_key = Bytes("yieldBalance")
 
-    
     @Subroutine(TealType.uint64)
     def calculateYieldTotal(sender: Expr) -> Int:
         staking_balance = App.localGet(sender, staked_key)
-        elapsed_time = (Global.latest_timestamp() - App.localGet(sender, startTime_key)) * Int(10**8)
+        elapsed_time = (
+            Global.latest_timestamp() - App.localGet(sender, startTime_key)
+        ) * Int(10**8)
         rate = elapsed_time / Int(86400)
 
-        return (staking_balance * rate)  / Int(10**8)
-
+        return (staking_balance * rate) / Int(10**8)
 
     @Subroutine(TealType.none)
     def unstake(receiver: Expr, amount: Expr) -> Expr:
@@ -82,9 +82,15 @@ def approval_program():
         .Then(
             Seq(
                 unstake(Txn.sender(), amount_to_unstake),
-                App.localPut(Txn.sender(), yieldBalance_key, current_user_yield + amount_to_yield),
-                App.localPut(Txn.sender(), staked_key, current_user_amount - amount_to_unstake),
-                App.localPut(Txn.sender(), startTime_key, Global.latest_timestamp()), # reset startTime
+                App.localPut(
+                    Txn.sender(), yieldBalance_key, current_user_yield + amount_to_yield
+                ),
+                App.localPut(
+                    Txn.sender(), staked_key, current_user_amount - amount_to_unstake
+                ),
+                App.localPut(
+                    Txn.sender(), startTime_key, Global.latest_timestamp()
+                ),  # reset startTime
                 Approve(),
             )
         )
@@ -124,7 +130,7 @@ def clear_state_program():
     return Approve()
 
 
-if __name__ == "__main__":
+def create():
     with open("contracts/stake_approval.teal", "w") as f:
         compiled = compileTeal(approval_program(), mode=Mode.Application, version=5)
         f.write(compiled)
@@ -132,3 +138,7 @@ if __name__ == "__main__":
     with open("contracts/stake_clear_state.teal", "w") as f:
         compiled = compileTeal(clear_state_program(), mode=Mode.Application, version=5)
         f.write(compiled)
+
+
+if __name__ == "__main__":
+    create()

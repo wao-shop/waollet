@@ -1,13 +1,13 @@
-from time import time, sleep
+from time import sleep, time
 
 import pytest
-
 from algosdk.logic import get_application_address
 
 from .actions import createApp, stake, unstake
-from .utils import getAppGlobalState, getAppLocalState
+from .testing.resources import (fundAccount, getTemporaryAccount,
+                                optInToApplication)
 from .testing.setup import getAlgodClient
-from .testing.resources import getTemporaryAccount, optInToApplication, fundAccount
+from .utils import getAppGlobalState, getAppLocalState
 
 
 def test_create():
@@ -45,13 +45,10 @@ def test_stake():
     assert actualState == expectedState
 
     actualLocalState = getAppLocalState(client, appID, staker.getAddress())
-    expectedLocalState = {
-        b'stakingBalance': 500_000,
-        b'yieldBalance': 0
-    }
+    expectedLocalState = {b"stakingBalance": 500_000, b"yieldBalance": 0}
 
-    assert actualLocalState[b'stakingBalance'] == expectedLocalState[b'stakingBalance']
-    assert actualLocalState[b'yieldBalance'] == expectedLocalState[b'yieldBalance']
+    assert actualLocalState[b"stakingBalance"] == expectedLocalState[b"stakingBalance"]
+    assert actualLocalState[b"yieldBalance"] == expectedLocalState[b"yieldBalance"]
 
 
 def test_unstake():
@@ -80,10 +77,9 @@ def test_unstake():
     afterUnstakeLocalState = getAppLocalState(client, appID, staker.getAddress())
 
     afterUnstakeExpectedGlobalState = {
-        b'globalStakingBalance': 0,
+        b"globalStakingBalance": 0,
     }
 
     assert afterUnstakeGlobalState == afterUnstakeExpectedGlobalState
-    assert afterUnstakeLocalState[b'stakingBalance'] == 0
-    assert afterUnstakeLocalState[b'yieldBalance'] > 0
-
+    assert afterUnstakeLocalState[b"stakingBalance"] == 0
+    assert afterUnstakeLocalState[b"yieldBalance"] > 0

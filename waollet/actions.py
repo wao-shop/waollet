@@ -1,9 +1,9 @@
-from algosdk.v2client.algod import AlgodClient
-from algosdk.logic import get_application_address
 from algosdk.future import transaction
+from algosdk.logic import get_application_address
+from algosdk.v2client.algod import AlgodClient
 
 from .account import Account
-from .utils import getContracts, waitForTransaction, getAppGlobalState
+from .utils import getAppGlobalState, getContracts, waitForTransaction
 
 
 def createApp(client: AlgodClient, sender: Account):
@@ -39,7 +39,7 @@ def createApp(client: AlgodClient, sender: Account):
 
 def stake(client: AlgodClient, appID: int, staker: Account, stakeAmount: int) -> None:
     """Stake
-    
+
     Args:
       client: An algod client
       appId: The app appID
@@ -73,12 +73,14 @@ def stake(client: AlgodClient, appID: int, staker: Account, stakeAmount: int) ->
 
     client.send_transactions([signedPayTxn, signedAppCallTxn])
 
-    waitForTransaction(client, appCallTxn.get_txid())
+    return waitForTransaction(client, appCallTxn.get_txid())
 
 
-def unstake(client: AlgodClient, appID: int, staker: Account, unstakeAmount: int) -> None:
+def unstake(
+    client: AlgodClient, appID: int, staker: Account, unstakeAmount: int
+) -> None:
     """Stake
-    
+
     Args:
       client: An algod client
       appId: The app appID
@@ -94,7 +96,7 @@ def unstake(client: AlgodClient, appID: int, staker: Account, unstakeAmount: int
         sender=staker.getAddress(),
         index=appID,
         on_complete=transaction.OnComplete.NoOpOC,
-        app_args=[b"unstake", (unstakeAmount).to_bytes(8,'big')],
+        app_args=[b"unstake", (unstakeAmount).to_bytes(8, "big")],
         sp=suggestedParams,
     )
 
@@ -102,4 +104,4 @@ def unstake(client: AlgodClient, appID: int, staker: Account, unstakeAmount: int
 
     client.send_transaction(signedAppCallTxn)
 
-    waitForTransaction(client, appCallTxn.get_txid())
+    return waitForTransaction(client, appCallTxn.get_txid())

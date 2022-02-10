@@ -2,7 +2,7 @@ from base64 import b64decode
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from algosdk.v2client.algod import AlgodClient
-from pyteal import compileTeal, Mode, Expr
+from pyteal import Expr, Mode, compileTeal
 
 from .contracts import approval_program, clear_state_program
 
@@ -26,7 +26,7 @@ class PendingTxnResponse:
         self.senderRewards: Optional[int] = response.get("sender-rewards")
 
         self.innerTxns: List[Any] = response.get("inner-txns", [])
-        self.logs: List[bytes] = [b64decode(l) for l in response.get("logs", [])]
+        self.logs: List[bytes] = [b64decode(log) for log in response.get("logs", [])]
 
 
 def getContracts(client: AlgodClient) -> Tuple[bytes, bytes]:
@@ -96,14 +96,14 @@ def getAppGlobalState(
 
 
 def getAppLocalState(
-    client: AlgodClient, appID: int, account: str 
+    client: AlgodClient, appID: int, account: str
 ) -> Dict[bytes, Union[int, bytes]]:
     accountInfo = client.account_info(account)
     for appLocalState in accountInfo["apps-local-state"]:
-        if appLocalState['id'] == appID:
+        if appLocalState["id"] == appID:
             appLocalInfo = appLocalState
             break
-            
+
     return decodeState(appLocalInfo["key-value"])
 
 

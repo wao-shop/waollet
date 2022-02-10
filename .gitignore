@@ -8,3 +8,5 @@ __pycache__/
 
 # built using make
 contracts/
+
+waollet_cli.egg-info/
