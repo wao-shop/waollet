@@ -9,7 +9,15 @@ def approval_program():
     staked_key = Bytes('stakingBalance')
     startTime_key = Bytes('startTime')
     yieldBalance_key = Bytes('yieldBalance')
+
     
+    @Subroutine(TealType.uint64)
+    def calculateYieldTotal(sender: Expr) -> Int:
+        staking_balance = App.localGet(sender, staked_key)
+        elapsed_time = App.localGet(sender, startTime_key) - Global.latest_timestamp()
+        rate = elapsed_time / Int(86400)
+
+        return (elapsed_time * rate) 
 
     @Subroutine(TealType.none)
     def unstake(assetId: Expr, receiver: Expr, amount: Expr) -> Expr:
@@ -60,18 +68,22 @@ def approval_program():
             staked_key,
             current_user_amount + Gtxn[on_stake_txn_index].amount(),
         ),
-        App.localPut(Txn.sender(), startTime_key, Global.latest_timestamp())
+        App.localPut(Txn.sender(), startTime_key, Global.latest_timestamp()),
         Approve(),
     )
 
     # Unstake Transaction
+    current_user_yield = App.localGet(Txn.sender(), yieldBalance_key)
     amount_to_unstake = Btoi(Txn.application_args[1])
+    amount_to_yield = calculateYieldTotal(Txn.sender())
     assetId = Txn.assets[0]
     on_unstake = Seq(
-        If(App.localGet(Txn.sender(), staked_key) >= amount_to_unstake)
+        If(current_user_amount >= amount_to_unstake)
         .Then(
             Seq(
+                App.localPut(Txn.sender(), staked_key, current_user_amount - amount_to_unstake),
                 unstake(assetId, Txn.sender(), amount_to_unstake),
+                App.localPut(Txn.sender(), yieldBalance_key, current_user_yield + amount_to_yield),
                 Approve(),
             )
         )
