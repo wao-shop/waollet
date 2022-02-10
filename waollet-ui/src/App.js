@@ -119,15 +119,7 @@ function App() {
       from: STAKER_ACCOUNT_ADDRESS,
       appIndex: APP_ID,
       onComplete: window.algosdk.AppNoOpTxn,
-      appArgs: [
-        Uint8Array.from('unstake'.split('').map(c => c.charCodeAt(0))),
-        Uint8Array.from(
-          amount
-            .toString()
-            .split('')
-            .map(c => c.charCodeAt(0))
-        ),
-      ],
+      appArgs: [Uint8Array.from('unstake'.split('').map(c => c.charCodeAt(0))), window.algosdk.encodeUint64(amount)],
       suggestedParams,
     })
 
