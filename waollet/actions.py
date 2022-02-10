@@ -76,7 +76,30 @@ def stake(client: AlgodClient, appID: int, staker: Account, stakeAmount: int) ->
     waitForTransaction(client, appCallTxn.get_txid())
 
 
+def unstake(client: AlgodClient, appID: int, staker: Account, unstakeAmount: int) -> None:
+    """Stake
+    
+    Args:
+      client: An algod client
+      appId: The app appID
+      staker: The account staking
+      stakeAmount: The amount being staked
+    """
+    appAddr = get_application_address(appID)
+    appGlobalState = getAppGlobalState(client, appID)
 
+    suggestedParams = client.suggested_params()
 
-def unstake():
-    pass
+    appCallTxn = transaction.ApplicationCallTxn(
+        sender=staker.getAddress(),
+        index=appID,
+        on_complete=transaction.OnComplete.NoOpOC,
+        app_args=[b"unstake", (unstakeAmount).to_bytes(8,'big')],
+        sp=suggestedParams,
+    )
+
+    signedAppCallTxn = appCallTxn.sign(staker.getPrivateKey())
+
+    client.send_transaction(signedAppCallTxn)
+
+    waitForTransaction(client, appCallTxn.get_txid())

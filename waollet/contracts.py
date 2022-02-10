@@ -32,6 +32,7 @@ def approval_program():
                 }
             ),
             InnerTxnBuilder.Submit(),
+            App.globalPut(amount_key, current_global_amount - amount_to_unstake),
         )
 
     on_create = Seq(
@@ -80,9 +81,9 @@ def approval_program():
         If(current_user_amount >= amount_to_unstake)
         .Then(
             Seq(
-                App.localPut(Txn.sender(), staked_key, current_user_amount - amount_to_unstake),
                 unstake(Txn.sender(), amount_to_unstake),
                 App.localPut(Txn.sender(), yieldBalance_key, current_user_yield + amount_to_yield),
+                App.localPut(Txn.sender(), staked_key, current_user_amount - amount_to_unstake),
                 App.localPut(Txn.sender(), startTime_key, Global.latest_timestamp()), # reset startTime
                 Approve(),
             )
