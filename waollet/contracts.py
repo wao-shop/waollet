@@ -20,13 +20,12 @@ def approval_program():
         return (elapsed_time * rate) 
 
     @Subroutine(TealType.none)
-    def unstake(assetId: Expr, receiver: Expr, amount: Expr) -> Expr:
+    def unstake(receiver: Expr, amount: Expr) -> Expr:
         return Seq(
             InnerTxnBuilder.Begin(),
             InnerTxnBuilder.SetFields(
                 {
-                    TxnField.type_enum: TxnType.AssetTransfer,
-                    TxnField.xfer_asset: assetId,
+                    TxnField.type_enum: TxnType.Payment,
                     TxnField.amount: amount,
                     TxnField.asset_receiver: receiver,
                 }
@@ -53,11 +52,11 @@ def approval_program():
     on_stake = Seq(
         Assert(
             And(
-                Gtxn[on_stake_txn_index].type_enum() == TxnType.AssetTransfer,
-                Gtxn[on_stake_txn_index].xfer_asset() == Txn.assets[0],
+                Gtxn[on_stake_txn_index].type_enum() == TxnType.Payment,
                 Gtxn[on_stake_txn_index].sender() == Txn.sender(),
                 Gtxn[on_stake_txn_index].receiver()
                 == Global.current_application_address(),  # TODO should we use another address here? like an "liquidity pool"
+                Gtxn[on_stake_txn_index].amount() >= Global.min_txn_fee(),
             )
         ),
         App.globalPut(
@@ -76,14 +75,14 @@ def approval_program():
     current_user_yield = App.localGet(Txn.sender(), yieldBalance_key)
     amount_to_unstake = Btoi(Txn.application_args[1])
     amount_to_yield = calculateYieldTotal(Txn.sender())
-    assetId = Txn.assets[0]
     on_unstake = Seq(
         If(current_user_amount >= amount_to_unstake)
         .Then(
             Seq(
                 App.localPut(Txn.sender(), staked_key, current_user_amount - amount_to_unstake),
-                unstake(assetId, Txn.sender(), amount_to_unstake),
+                unstake(Txn.sender(), amount_to_unstake),
                 App.localPut(Txn.sender(), yieldBalance_key, current_user_yield + amount_to_yield),
+                App.localPut(Txn.sender(), startTime_key, Global.latest_timestamp()), # reset startTime
                 Approve(),
             )
         )
