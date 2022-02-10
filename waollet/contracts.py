@@ -2,8 +2,14 @@ from pyteal import *
 
 
 def approval_program():
-    amount_key = Bytes("amount")
-    staked_key = Bytes("staked")
+    # App Global State
+    amount_key = Bytes("globalStakingBalance")
+
+    # App Local State
+    staked_key = Bytes('stakingBalance')
+    startTime_key = Bytes('startTime')
+    yieldBalance_key = Bytes('yieldBalance')
+    
 
     @Subroutine(TealType.none)
     def unstake(assetId: Expr, receiver: Expr, amount: Expr) -> Expr:
@@ -27,9 +33,12 @@ def approval_program():
 
     on_optin = Seq(
         App.localPut(Txn.sender(), staked_key, Int(0)),
+        App.localPut(Txn.sender(), startTime_key, Int(0)),
+        App.localPut(Txn.sender(), yieldBalance_key, Int(0)),
         Approve(),
     )
 
+    # Staking Transaction
     on_stake_txn_index = Txn.group_index() - Int(1)
     current_global_amount = App.globalGet(amount_key)
     current_user_amount = App.localGet(Txn.sender(), staked_key)
@@ -51,9 +60,11 @@ def approval_program():
             staked_key,
             current_user_amount + Gtxn[on_stake_txn_index].amount(),
         ),
+        App.localPut(Txn.sender(), startTime_key, Global.latest_timestamp())
         Approve(),
     )
 
+    # Unstake Transaction
     amount_to_unstake = Btoi(Txn.application_args[1])
     assetId = Txn.assets[0]
     on_unstake = Seq(
