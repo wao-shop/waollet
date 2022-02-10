@@ -8,3 +8,4 @@ __pycache__/
 
 # built using make
 contracts/
+.venv
