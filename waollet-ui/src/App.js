@@ -12,9 +12,17 @@ const APP_ID = Number(process.env.REACT_APP_APP_ID)
 
 const microalgosToAlgos = window.algosdk.microalgosToAlgos
 
-const STAKER_ACCOUNT_ADDRESS = 'L5BXMJ4WOH2OYCZAFDH4ZFCOWPTJZEOECXLQRJJSGT6UEJB4KAZ5MID7EY'
-const STAKER_ACCOUNT_MNEMONIC =
-  'predict giraffe inject reject price relief remain spirit process like siren math bullet awful relief cube you glue clarify tackle during tail law abandon captain'
+// const STAKER_ACCOUNT_ADDRESS = 'L5BXMJ4WOH2OYCZAFDH4ZFCOWPTJZEOECXLQRJJSGT6UEJB4KAZ5MID7EY'
+// const STAKER_ACCOUNT_MNEMONIC =
+//   'predict giraffe inject reject price relief remain spirit process like siren math bullet awful relief cube you glue clarify tackle during tail law abandon captain'
+
+async function loadAccountFromAlgoSigner() {
+  await window.AlgoSigner.connect()
+  const accounts = await window.AlgoSigner.accounts({ledger: "sandbox-net"})
+
+  const firstAccount = accounts[0]
+  return firstAccount
+}
 
 function App() {
   const [stakeModalIsVisible, setStakeModalVisible] = useState(false)
@@ -34,7 +42,9 @@ function App() {
     console.log(globalState)
     setTvl(globalState.globalStakingBalance)
 
-    const accountInfo = await client.accountInformation(STAKER_ACCOUNT_ADDRESS).do()
+    const account = await loadAccountFromAlgoSigner()
+
+    const accountInfo = await client.accountInformation(account.address).do()
     const appsLocalState = decodeState(accountInfo['apps-local-state'].find(state => state.id === APP_ID)['key-value'])
 
     setStaked(appsLocalState.stakingBalance)
@@ -52,12 +62,13 @@ function App() {
     const applicationAddress = await window.algosdk.getApplicationAddress(APP_ID)
     const suggestedParams = await client.getTransactionParams().do()
 
-    const stakerAccount = window.algosdk.mnemonicToSecretKey(STAKER_ACCOUNT_MNEMONIC)
+    const account = await loadAccountFromAlgoSigner()
+    const firstAccountAddress = account.address
 
     const to = applicationAddress
 
     const paymentTxn = await window.algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-      from: STAKER_ACCOUNT_ADDRESS,
+      from: firstAccountAddress,
       to,
       amount,
       fee: 100,
@@ -65,7 +76,7 @@ function App() {
     })
 
     const appCallTxn = await window.algosdk.makeApplicationCallTxnFromObject({
-      from: STAKER_ACCOUNT_ADDRESS,
+      from: firstAccountAddress,
       appIndex: APP_ID,
       onComplete: window.algosdk.AppNoOpTxn,
       appArgs: [Uint8Array.from('stake'.split('').map(c => c.charCodeAt(0)))],
@@ -74,10 +85,23 @@ function App() {
 
     window.algosdk.assignGroupID([paymentTxn, appCallTxn])
 
-    const signedPaymentTxn = await paymentTxn.signTxn(stakerAccount.sk)
-    const signedAppCallTxn = await appCallTxn.signTxn(stakerAccount.sk)
+    console.log({paymentTxn, appCallTxn})
 
-    const sendTx = await client.sendRawTransaction([signedPaymentTxn, signedAppCallTxn]).do()
+    const paymenTxnBase64 = window.AlgoSigner.encoding.msgpackToBase64(paymentTxn.toByte())
+    const appCallTxnBase64 = window.AlgoSigner.encoding.msgpackToBase64(appCallTxn.toByte())
+
+    let signedTxs = null
+    try {
+      signedTxs = await window.AlgoSigner.signTxn([{txn: paymenTxnBase64}, {txn: appCallTxnBase64}])
+    } catch (err) {
+      console.info("ERROR")
+      throw err
+    }
+    console.info(signedTxs)
+
+    const sendTx = await client.sendRawTransaction(
+        signedTxs.map(tx => window.AlgoSigner.encoding.base64ToMsgpack(tx.blob))
+        ).do()
 
     await window.algosdk.waitForConfirmation(client, sendTx.txId, 5)
 
@@ -90,18 +114,22 @@ function App() {
     setTransactionIsProcessing(true)
     const suggestedParams = await client.getTransactionParams().do()
 
-    const stakerAccount = window.algosdk.mnemonicToSecretKey(STAKER_ACCOUNT_MNEMONIC)
+    const account = await loadAccountFromAlgoSigner()
+    const firstAccountAddress = account.address
 
     const appCallTxn = await window.algosdk.makeApplicationCallTxnFromObject({
-      from: STAKER_ACCOUNT_ADDRESS,
+      from: firstAccountAddress,
       appIndex: APP_ID,
       onComplete: window.algosdk.AppNoOpTxn,
       appArgs: [Uint8Array.from('unstake'.split('').map(c => c.charCodeAt(0))), window.algosdk.encodeUint64(amount)],
       suggestedParams,
     })
+    const appCallTxnBase64 = window.AlgoSigner.encoding.msgpackToBase64(appCallTxn.toByte())
 
-    const signedAppCallTxn = await appCallTxn.signTxn(stakerAccount.sk)
-    const sendTx = await client.sendRawTransaction([signedAppCallTxn]).do()
+    const signedTxs = await window.AlgoSigner.signTxn([{txn: appCallTxnBase64}])
+    const sendTx = await client.sendRawTransaction(
+        signedTxs.map(tx => window.AlgoSigner.encoding.base64ToMsgpack(tx.blob))
+        ).do()
 
     await window.algosdk.waitForConfirmation(client, sendTx.txId, 5)
 
