@@ -150,17 +150,17 @@ function App() {
             <p>
               <strong>TVL</strong>
               <br />
-              <span>ALG$ {tvl}</span>
+              <span>ALG$ {window.algosdk.microalgosToAlgos(tvl)}</span>
             </p>
             <p>
               <strong>staked</strong>
               <br />
-              <span>ALG$ {staked}</span>
+              <span>ALG$ {window.algosdk.microalgosToAlgos(staked)}</span>
             </p>
             <p>
               <strong>yield</strong>
               <br />
-              <span>ALG$ {myYield}</span>
+              <span>ALG$ {window.algosdk.microalgosToAlgos(myYield)}</span>
             </p>
 
             <div>
