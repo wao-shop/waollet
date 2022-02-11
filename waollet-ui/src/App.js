@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { decodeState } from './utils'
 
 import './App.css'
 
@@ -12,21 +13,6 @@ const APP_ID = 46
 const STAKER_ACCOUNT_ADDRESS = 'L5BXMJ4WOH2OYCZAFDH4ZFCOWPTJZEOECXLQRJJSGT6UEJB4KAZ5MID7EY'
 const STAKER_ACCOUNT_MNEMONIC =
   'predict giraffe inject reject price relief remain spirit process like siren math bullet awful relief cube you glue clarify tackle during tail law abandon captain'
-
-const decodeState = states => {
-  const finalStates = {}
-
-  for (const state of states) {
-    const {
-      key: b64key,
-      value: { bytes, type, uint },
-    } = state
-    const key = atob(b64key)
-    finalStates[key] = type === 2 ? Number(uint) : atob(bytes)
-  }
-
-  return finalStates
-}
 
 function Modal(props) {
   const [amount, setAmount] = useState(0)
