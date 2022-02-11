@@ -9,6 +9,9 @@ const port = 4001
 const client = new window.algosdk.Algodv2(token, server, port)
 const APP_ID = 46
 
+const microalgosToAlgos = window.algosdk.microalgosToAlgos;
+const algosToMicroalgos = window.algosdk.algosToMicroalgos;
+
 // const STAKER_ACCOUNT_PK = 'TY0Y6E47VdWyFtJcbeCSkRiPQqh2Nfn/2FPQHSJ1vw9fQ3YnlnH07AsgKM/MlE6z5pyRxBXXCKUyNP1CJDxQMw=='
 const STAKER_ACCOUNT_ADDRESS = 'L5BXMJ4WOH2OYCZAFDH4ZFCOWPTJZEOECXLQRJJSGT6UEJB4KAZ5MID7EY'
 const STAKER_ACCOUNT_MNEMONIC =
@@ -27,7 +30,7 @@ function Modal(props) {
         <label>
           Amount <input type="text" value={amount} onChange={e => setAmount(Number(e.target.value) || 0)} />
         </label>
-        <input type="button" className="btn" value="confirm" onClick={() => props.onSubmit?.(amount)} />
+        <input type="button" className="btn" value="confirm" onClick={() => props.onSubmit?.(algosToMicroalgos(amount))} />
       </div>
     </div>
   )
@@ -127,7 +130,7 @@ function App() {
       </p>
       <p>
         <strong>Account Balance: </strong>
-        <span>ALG$ {window.algosdk.microalgosToAlgos(accBalance)}</span>
+        <span>ALG$ {microalgosToAlgos(accBalance)}</span>
       </p>
       <section className="main bordered">
         <h1>waollet</h1>
@@ -136,17 +139,17 @@ function App() {
             <p>
               <strong>TVL</strong>
               <br />
-              <span>ALG$ {window.algosdk.microalgosToAlgos(tvl)}</span>
+              <span>ALG$ {microalgosToAlgos(tvl)}</span>
             </p>
             <p>
               <strong>staked</strong>
               <br />
-              <span>ALG$ {window.algosdk.microalgosToAlgos(staked)}</span>
+              <span>ALG$ {microalgosToAlgos(staked)}</span>
             </p>
             <p>
               <strong>yield</strong>
               <br />
-              <span>ALG$ {window.algosdk.microalgosToAlgos(myYield)}</span>
+              <span>ALG$ {microalgosToAlgos(myYield)}</span>
             </p>
 
             <div>
