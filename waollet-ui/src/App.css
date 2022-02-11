@@ -4,7 +4,7 @@
 
 .main {
   width: 750px;
-  height: 530px;
+  height: 580px;
   margin: 0 auto;
 }
 
@@ -23,6 +23,44 @@
   padding: 10px;
   cursor: pointer;
   margin: 30px 10px 0 10px;
+}
+
+.account-entry {
+  width: 455px;
+  border: 2px solid black;
+  margin: 0 auto;
+  margin-top: 10px;
+  padding: 10px;
+}
+
+.account-modal-bd {
+  display: block;
+  position: absolute;
+  z-index: 1;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.account-modal-content {
+  background: white;
+  width: 600px;
+  min-height: 100px;
+  display: flex;
+  margin: 10% auto 0 auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-content: stretch;
+  align-items: center;
+  pointer-events: all;
+  user-select: all;
 }
 
 .modal-bd {
@@ -55,6 +93,6 @@
   user-select: all;
 }
 
-.modal-content .btn.close {
+.account-modal-content .modal-content .btn.close {
   margin: 0;
 }
