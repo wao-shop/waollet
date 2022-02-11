@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { decodeState } from './utils'
 
 import './App.css'
+import TransactionModal from './molecules/TransactionModal'
 
 const token = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 const server = 'http://127.0.0.1'
@@ -9,36 +10,17 @@ const port = 4001
 const client = new window.algosdk.Algodv2(token, server, port)
 const APP_ID = 46
 
-const microalgosToAlgos = window.algosdk.microalgosToAlgos;
-const algosToMicroalgos = window.algosdk.algosToMicroalgos;
+const microalgosToAlgos = window.algosdk.microalgosToAlgos
 
 // const STAKER_ACCOUNT_PK = 'TY0Y6E47VdWyFtJcbeCSkRiPQqh2Nfn/2FPQHSJ1vw9fQ3YnlnH07AsgKM/MlE6z5pyRxBXXCKUyNP1CJDxQMw=='
 const STAKER_ACCOUNT_ADDRESS = 'L5BXMJ4WOH2OYCZAFDH4ZFCOWPTJZEOECXLQRJJSGT6UEJB4KAZ5MID7EY'
 const STAKER_ACCOUNT_MNEMONIC =
   'predict giraffe inject reject price relief remain spirit process like siren math bullet awful relief cube you glue clarify tackle during tail law abandon captain'
 
-function Modal(props) {
-  const [amount, setAmount] = useState(0)
-
-  return (
-    <div className="modal-bd">
-      <div className="modal-content">
-        <p style={{ textAlign: 'right', width: '100%' }}>
-          <input type="button" value="X" className="btn close" onClick={() => props.onCloseModal?.()} />
-        </p>
-        <h3>{props.title}</h3>
-        <label>
-          Amount <input type="text" value={amount} onChange={e => setAmount(Number(e.target.value) || 0)} />
-        </label>
-        <input type="button" className="btn" value="confirm" onClick={() => props.onSubmit?.(algosToMicroalgos(amount))} />
-      </div>
-    </div>
-  )
-}
-
 function App() {
   const [stakeModalIsVisible, setStakeModalVisible] = useState(false)
   const [unstakeModalIsVisible, setUnstakeModalVisible] = useState(false)
+  const [transactionIsProcessing, setTransactionIsProcessing] = useState(false)
 
   const [tvl, setTvl] = useState(0)
   const [staked, setStaked] = useState(0)
@@ -46,27 +28,28 @@ function App() {
   const [accBalance, setAccBalance] = useState(0)
   const [accAddress, setAccAddress] = useState('')
 
+  const fetchGlobalState = async () => {
+    console.log(await client.status().do())
+
+    const globalState = decodeState((await client.getApplicationByID(APP_ID).do()).params['global-state'])
+    console.log(globalState)
+    setTvl(globalState.globalStakingBalance)
+
+    const accountInfo = await client.accountInformation(STAKER_ACCOUNT_ADDRESS).do()
+    const appsLocalState = decodeState(accountInfo['apps-local-state'].find(state => state.id === APP_ID)['key-value'])
+
+    setStaked(appsLocalState.stakingBalance)
+    setMyYield(appsLocalState.yieldBalance)
+    setAccBalance(accountInfo.amount)
+    setAccAddress(accountInfo.address)
+  }
+
   useEffect(() => {
-    ;(async () => {
-      console.log(await client.status().do())
-
-      const globalState = decodeState((await client.getApplicationByID(APP_ID).do()).params['global-state'])
-      console.log(globalState)
-      setTvl(globalState.globalStakingBalance)
-
-      const accountInfo = await client.accountInformation(STAKER_ACCOUNT_ADDRESS).do()
-      const appsLocalState = decodeState(
-        accountInfo['apps-local-state'].find(state => state.id === APP_ID)['key-value']
-      )
-
-      setStaked(appsLocalState.stakingBalance)
-      setMyYield(appsLocalState.yieldBalance)
-      setAccBalance(accountInfo.amount)
-      setAccAddress(accountInfo.address)
-    })()
+    fetchGlobalState()
   }, [])
 
   const stakeWasSubmitted = async amount => {
+    setTransactionIsProcessing(true)
     const applicationAddress = await window.algosdk.getApplicationAddress(APP_ID)
     const suggestedParams = await client.getTransactionParams().do()
 
@@ -95,13 +78,17 @@ function App() {
     const signedPaymentTxn = await paymentTxn.signTxn(stakerAccount.sk)
     const signedAppCallTxn = await appCallTxn.signTxn(stakerAccount.sk)
 
-    console.log('Sending transactions...')
     const sendTx = await client.sendRawTransaction([signedPaymentTxn, signedAppCallTxn]).do()
-    console.log('Transaction ID')
-    console.log(sendTx.txId)
+
+    await window.algosdk.waitForConfirmation(client, sendTx.txId, 5)
+
+    setTransactionIsProcessing(false)
+    setStakeModalVisible(false)
+    fetchGlobalState()
   }
 
   const unstakeWasSubmitted = async amount => {
+    setTransactionIsProcessing(true)
     const suggestedParams = await client.getTransactionParams().do()
 
     const stakerAccount = window.algosdk.mnemonicToSecretKey(STAKER_ACCOUNT_MNEMONIC)
@@ -115,23 +102,17 @@ function App() {
     })
 
     const signedAppCallTxn = await appCallTxn.signTxn(stakerAccount.sk)
-
-    console.log('Sending transactions...')
     const sendTx = await client.sendRawTransaction([signedAppCallTxn]).do()
-    console.log('Transaction ID')
-    console.log(sendTx.txId)
+
+    await window.algosdk.waitForConfirmation(client, sendTx.txId, 5)
+
+    setTransactionIsProcessing(false)
+    setUnstakeModalVisible(false)
+    fetchGlobalState()
   }
 
   return (
     <div className="App">
-      <p>
-        <strong>Account Address: </strong>
-        <span>{accAddress}</span>
-      </p>
-      <p>
-        <strong>Account Balance: </strong>
-        <span>ALG$ {microalgosToAlgos(accBalance)}</span>
-      </p>
       <section className="main bordered">
         <h1>waollet</h1>
         <div className="bordered content">
@@ -170,12 +151,30 @@ function App() {
             </div>
           </div>
         </div>
+        <p style={{ marginTop: '50px' }}>
+          <strong>Account Address: </strong>
+          <span>{accAddress}</span>
+        </p>
+        <p>
+          <strong>Account Balance: </strong>
+          <span>ALG$ {microalgosToAlgos(accBalance)}</span>
+        </p>
       </section>
       {stakeModalIsVisible && (
-        <Modal title="stake" onCloseModal={() => setStakeModalVisible(false)} onSubmit={stakeWasSubmitted} />
+        <TransactionModal
+          title="stake"
+          onCloseModal={() => setStakeModalVisible(false)}
+          onSubmit={stakeWasSubmitted}
+          isLoading={transactionIsProcessing}
+        />
       )}
       {unstakeModalIsVisible && (
-        <Modal title="unstake" onCloseModal={() => setUnstakeModalVisible(false)} onSubmit={unstakeWasSubmitted} />
+        <TransactionModal
+          title="unstake"
+          onCloseModal={() => setUnstakeModalVisible(false)}
+          onSubmit={unstakeWasSubmitted}
+          isLoading={transactionIsProcessing}
+        />
       )}
     </div>
   )
