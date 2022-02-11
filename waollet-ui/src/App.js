@@ -4,15 +4,14 @@ import { decodeState } from './utils'
 import './App.css'
 import TransactionModal from './molecules/TransactionModal'
 
-const token = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-const server = 'http://127.0.0.1'
-const port = 4001
+const token = process.env.REACT_APP_TOKEN
+const server = process.env.REACT_APP_SERVER
+const port = process.env.REACT_APP_PORT
 const client = new window.algosdk.Algodv2(token, server, port)
-const APP_ID = 46
+const APP_ID = Number(process.env.REACT_APP_APP_ID)
 
 const microalgosToAlgos = window.algosdk.microalgosToAlgos
 
-// const STAKER_ACCOUNT_PK = 'TY0Y6E47VdWyFtJcbeCSkRiPQqh2Nfn/2FPQHSJ1vw9fQ3YnlnH07AsgKM/MlE6z5pyRxBXXCKUyNP1CJDxQMw=='
 const STAKER_ACCOUNT_ADDRESS = 'L5BXMJ4WOH2OYCZAFDH4ZFCOWPTJZEOECXLQRJJSGT6UEJB4KAZ5MID7EY'
 const STAKER_ACCOUNT_MNEMONIC =
   'predict giraffe inject reject price relief remain spirit process like siren math bullet awful relief cube you glue clarify tackle during tail law abandon captain'
