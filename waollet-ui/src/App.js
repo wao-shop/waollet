@@ -52,10 +52,10 @@ function App() {
   const [unstakeModalIsVisible, setUnstakeModalVisible] = useState(false)
 
   const [tvl, setTvl] = useState(0)
-  // eslint-disable-next-line no-unused-vars
   const [staked, setStaked] = useState(0)
-  // eslint-disable-next-line no-unused-vars
   const [myYield, setMyYield] = useState(0)
+  const [accBalance, setAccBalance] = useState(0)
+  const [accAddress, setAccAddress] = useState('')
 
   useEffect(() => {
     ;(async () => {
@@ -72,6 +72,8 @@ function App() {
 
       setStaked(appsLocalState.stakingBalance)
       setMyYield(appsLocalState.yieldBalance)
+      setAccBalance(accountInfo.amount)
+      setAccAddress(accountInfo.address)
     })()
   }, [])
 
@@ -133,6 +135,14 @@ function App() {
 
   return (
     <div className="App">
+      <p>
+        <strong>Account Address: </strong>
+        <span>{accAddress}</span>
+      </p>
+      <p>
+        <strong>Account Balance: </strong>
+        <span>ALG$ {window.algosdk.microalgosToAlgos(accBalance)}</span>
+      </p>
       <section className="main bordered">
         <h1>waollet</h1>
         <div className="bordered content">
