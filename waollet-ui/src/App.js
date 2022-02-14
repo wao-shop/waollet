@@ -3,6 +3,7 @@ import { decodeState } from './utils'
 
 import './App.css'
 import TransactionModal from './molecules/TransactionModal'
+import TransferModal from './molecules/TransferModal'
 import AccountModal from './molecules/AccountModal'
 
 const token = process.env.REACT_APP_TOKEN
@@ -61,6 +62,7 @@ function App() {
   const [stakeModalIsVisible, setStakeModalVisible] = useState(false)
   const [unstakeModalIsVisible, setUnstakeModalVisible] = useState(false)
   const [accountModalIsVisible, setAccountModalVisible] = useState(false)
+  const [transferModalIsVisible, setTransferModalVisible] = useState(false)
   const [transactionIsProcessing, setTransactionIsProcessing] = useState(false)
   const [modalErrorMessage, setModalErrorMessage] = useState(null)
 
@@ -70,7 +72,7 @@ function App() {
   const [accBalance, setAccBalance] = useState(0)
   const [accAddress, setAccAddress] = useState('')
 
-  const isAnyModalVisible = stakeModalIsVisible || unstakeModalIsVisible || accountModalIsVisible
+  const isAnyModalVisible = stakeModalIsVisible || unstakeModalIsVisible || accountModalIsVisible || transferModalIsVisible
 
   const fetchGlobalState = async () => {
     console.log(await client.status().do())
@@ -95,6 +97,7 @@ function App() {
 
     setAccBalance(accountInfo.amount)
     setAccAddress(accountInfo.address)
+    setModalErrorMessage("")
   }
 
   const selectAddress = async addr => {
@@ -213,6 +216,52 @@ function App() {
     fetchGlobalState()
   }
 
+  const transferWasSubmitted = async (to, amount) => {
+    setTransactionIsProcessing(true)
+    const suggestedParams = await client.getTransactionParams().do()
+
+    const account = await loadAccount()
+    const firstAccountAddress = account.address
+
+    if (!window.algosdk.isValidAddress(to)) {
+      handleTransactionError(new Error("Invalid recipient address."))
+    }
+
+    try {
+      await makeSureHasOptIn(firstAccountAddress, suggestedParams)
+    } catch (err) {
+      handleTransactionError(err)
+    }
+
+    const paymentTxn = await window.algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+      from: firstAccountAddress,
+      to,
+      amount,
+      fee: 100,
+      suggestedParams,
+    })
+
+    try {
+
+      if (to === firstAccountAddress) {
+        throw new Error("Can't transfer to same account.")
+      }
+
+      const sendTx = await client
+        .sendRawTransaction(await signTransactionsWithAlgoSigner([paymentTxn]))
+        .do()
+      await window.algosdk.waitForConfirmation(client, sendTx.txId, 5)
+    } catch (err) {
+      handleTransactionError(err)
+    }
+
+    setTransactionIsProcessing(false)
+    setStakeModalVisible(false)
+    setTransferModalVisible(false)
+    fetchGlobalState()
+  }
+
+
   return (
     <div className="App">
       <section className="main bordered">
@@ -274,11 +323,18 @@ function App() {
           disabled={isAnyModalVisible}
           onClick={() => setAccountModalVisible(!accountModalIsVisible)}
         />
+        <input
+          type="button"
+          className="btn"
+          value="transfer"
+          disabled={isAnyModalVisible}
+          onClick={() => setTransferModalVisible(!transferModalIsVisible)}
+        />
       </section>
       {accountModalIsVisible && (
         <AccountModal
           title="accounts"
-          onCloseModal={() => setAccountModalVisible(false)}
+          onCloseModal={() => setAccountModalVisible(false) & setModalErrorMessage(null)}
           onSelectAddress={addr => selectAddress(addr)}
           onSubmit={stakeWasSubmitted}
         />
@@ -286,7 +342,7 @@ function App() {
       {stakeModalIsVisible && (
         <TransactionModal
           title="stake"
-          onCloseModal={() => setStakeModalVisible(false)}
+          onCloseModal={() => setStakeModalVisible(false) & setModalErrorMessage(null)}
           onSubmit={stakeWasSubmitted}
           isLoading={transactionIsProcessing}
           errorMessage={modalErrorMessage}
@@ -295,8 +351,17 @@ function App() {
       {unstakeModalIsVisible && (
         <TransactionModal
           title="unstake"
-          onCloseModal={() => setUnstakeModalVisible(false)}
+          onCloseModal={() => setUnstakeModalVisible(false) & setModalErrorMessage(null)}
           onSubmit={unstakeWasSubmitted}
+          isLoading={transactionIsProcessing}
+          errorMessage={modalErrorMessage}
+        />
+      )}
+      {transferModalIsVisible && (
+        <TransferModal
+          title="transfer"
+          onCloseModal={() => setTransferModalVisible(false) & setModalErrorMessage(null)}
+          onSubmit={transferWasSubmitted}
           isLoading={transactionIsProcessing}
           errorMessage={modalErrorMessage}
         />

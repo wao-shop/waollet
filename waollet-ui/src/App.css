@@ -80,6 +80,15 @@
   width: 600px;
 }
 
+.modal-content.transfer-modal {
+  width: 700px;
+}
+
+.transfer-recipient-input {
+  width: 460px;
+  margin: 10px;
+}
+
 p.error-message {
   color: red;
   font-size: 12px;
