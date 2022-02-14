@@ -51,6 +51,8 @@ def approval_program():
     on_stake_txn_index = Txn.group_index() - Int(1)
     current_global_amount = App.globalGet(amount_key)
     current_user_amount = App.localGet(Txn.sender(), staked_key)
+    current_user_yield = App.localGet(Txn.sender(), yieldBalance_key)
+    amount_to_yield = calculateYieldTotal(Txn.sender())
     on_stake = Seq(
         Assert(
             And(
@@ -59,6 +61,11 @@ def approval_program():
                 Gtxn[on_stake_txn_index].receiver()
                 == Global.current_application_address(),  # TODO should we use another address here? like an "liquidity pool"
                 Gtxn[on_stake_txn_index].amount() >= Global.min_txn_fee(),
+            )
+        ),
+        If(current_user_amount > Int(0)).Then(
+            App.localPut(
+                Txn.sender(), yieldBalance_key, current_user_yield + amount_to_yield
             )
         ),
         App.globalPut(
@@ -74,9 +81,7 @@ def approval_program():
     )
 
     # Unstake Transaction
-    current_user_yield = App.localGet(Txn.sender(), yieldBalance_key)
     amount_to_unstake = Btoi(Txn.application_args[1])
-    amount_to_yield = calculateYieldTotal(Txn.sender())
     on_unstake = Seq(
         If(current_user_amount >= amount_to_unstake)
         .Then(

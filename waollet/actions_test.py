@@ -4,8 +4,7 @@ import pytest
 from algosdk.logic import get_application_address
 
 from .actions import createApp, stake, unstake
-from .testing.resources import (fundAccount, getTemporaryAccount,
-                                optInToApplication)
+from .testing.resources import fundAccount, getTemporaryAccount, optInToApplication
 from .testing.setup import getAlgodClient
 from .utils import getAppGlobalState, getAppLocalState
 
@@ -34,6 +33,7 @@ def test_stake():
 
     optInToApplication(client, appID, staker)
 
+    # First stake
     stakeAmount = 500_000
     stake(client=client, appID=appID, staker=staker, stakeAmount=stakeAmount)
 
@@ -41,14 +41,34 @@ def test_stake():
     expectedState = {
         b"globalStakingBalance": stakeAmount,
     }
-
     assert actualState == expectedState
 
-    actualLocalState = getAppLocalState(client, appID, staker.getAddress())
+    actualFirstLocalState = getAppLocalState(client, appID, staker.getAddress())
     expectedLocalState = {b"stakingBalance": 500_000, b"yieldBalance": 0}
+    assert (
+        actualFirstLocalState[b"stakingBalance"]
+        == expectedLocalState[b"stakingBalance"]
+    )
+    assert actualFirstLocalState[b"yieldBalance"] == expectedLocalState[b"yieldBalance"]
 
-    assert actualLocalState[b"stakingBalance"] == expectedLocalState[b"stakingBalance"]
-    assert actualLocalState[b"yieldBalance"] == expectedLocalState[b"yieldBalance"]
+    # Second stake to test yield calculation
+    stake(client=client, appID=appID, staker=staker, stakeAmount=stakeAmount)
+
+    actualState = getAppGlobalState(client, appID)
+    expectedState = {
+        b"globalStakingBalance": stakeAmount * 2,
+    }
+    assert actualState == expectedState
+
+    actualSecondLocalState = getAppLocalState(client, appID, staker.getAddress())
+    expectedLocalState = {b"stakingBalance": 1_000_000, b"yieldBalance": 0}
+    assert (
+        actualSecondLocalState[b"stakingBalance"]
+        == expectedLocalState[b"stakingBalance"]
+    )
+    assert (
+        actualSecondLocalState[b"yieldBalance"] > actualFirstLocalState[b"yieldBalance"]
+    )
 
 
 def test_unstake():
