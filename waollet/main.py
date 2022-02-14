@@ -40,7 +40,6 @@ def main():
     client = setup.getAlgodClient(args.algod_address, args.algod_token)
 
     if "create_app" in args.COMMAND:
-        contracts.create()
         if "localhost" in args.algod_address:
             res = actions.createApp(client, resources.getTemporaryAccount(client))
         print(res)
