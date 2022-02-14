@@ -33,36 +33,6 @@
   padding: 10px;
 }
 
-.account-modal-bd {
-  display: block;
-  position: absolute;
-  z-index: 1;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  user-select: none;
-}
-
-.account-modal-content {
-  background: white;
-  width: 600px;
-  min-height: 100px;
-  display: flex;
-  margin: 10% auto 0 auto;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  justify-content: flex-start;
-  align-content: stretch;
-  align-items: center;
-  pointer-events: all;
-  user-select: all;
-}
-
 .modal-bd {
   display: block;
   position: absolute;
@@ -91,8 +61,26 @@
   align-items: center;
   pointer-events: all;
   user-select: all;
+  user-select: none;
 }
 
-.account-modal-content .modal-content .btn.close {
+.modal-content .close-row {
+  text-align: right;
+  width: 100%;
+}
+
+.modal-content .close-row .btn {
   margin: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+
+.modal-content.accounts-modal {
+  width: 600px;
+}
+
+p.error-message {
+  color: red;
+  font-size: 12px;
 }

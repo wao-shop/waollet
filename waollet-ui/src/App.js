@@ -20,33 +20,29 @@ const microalgosToAlgos = window.algosdk.microalgosToAlgos
 //
 
 async function loadAccount() {
-
-  const localAddress = localStorage.getItem("SELECTED_ADDRESS")
+  const localAddress = localStorage.getItem('SELECTED_ADDRESS')
   if (localAddress) {
-    return {address: localAddress}
+    return { address: localAddress }
   }
 
   await window.AlgoSigner.connect()
-  const accounts = await window.AlgoSigner.accounts({ledger: process.env.REACT_APP_LEDGER_ID})
+  const accounts = await window.AlgoSigner.accounts({ ledger: process.env.REACT_APP_LEDGER_ID })
 
   const firstAccount = accounts[0]
   return firstAccount
 }
 
-
 async function signTransactionsWithAlgoSigner(txns) {
   const txnsBase64 = txns.map(tx => window.AlgoSigner.encoding.msgpackToBase64(tx.toByte()))
 
-  const signedTxns = await window.AlgoSigner.signTxn(txnsBase64.map(txnb64 => ({txn: txnb64})))
+  const signedTxns = await window.AlgoSigner.signTxn(txnsBase64.map(txnb64 => ({ txn: txnb64 })))
   return signedTxns.map(tx => window.AlgoSigner.encoding.base64ToMsgpack(tx.blob))
 }
 
 async function makeSureHasOptIn(address, suggestedParams) {
-
   const accountInfo = await client.accountInformation(address).do()
 
-  if (accountInfo['apps-local-state'].find(appls => appls.id === APP_ID))
-    return
+  if (accountInfo['apps-local-state'].find(appls => appls.id === APP_ID)) return
 
   const txn = await window.algosdk.makeApplicationOptInTxnFromObject({
     from: address,
@@ -64,14 +60,17 @@ async function makeSureHasOptIn(address, suggestedParams) {
 function App() {
   const [stakeModalIsVisible, setStakeModalVisible] = useState(false)
   const [unstakeModalIsVisible, setUnstakeModalVisible] = useState(false)
-  const [transactionIsProcessing, setTransactionIsProcessing] = useState(false)
   const [accountModalIsVisible, setAccountModalVisible] = useState(false)
+  const [transactionIsProcessing, setTransactionIsProcessing] = useState(false)
+  const [modalErrorMessage, setModalErrorMessage] = useState(null)
 
   const [tvl, setTvl] = useState(0)
   const [staked, setStaked] = useState(0)
   const [myYield, setMyYield] = useState(0)
   const [accBalance, setAccBalance] = useState(0)
   const [accAddress, setAccAddress] = useState('')
+
+  const isAnyModalVisible = stakeModalIsVisible || unstakeModalIsVisible || accountModalIsVisible
 
   const fetchGlobalState = async () => {
     console.log(await client.status().do())
@@ -83,7 +82,7 @@ function App() {
     const account = await loadAccount()
 
     const accountInfo = await client.accountInformation(account.address).do()
-    const accountLocalStateForApp = accountInfo['apps-local-state'].find(state => state.id === APP_ID) 
+    const accountLocalStateForApp = accountInfo['apps-local-state'].find(state => state.id === APP_ID)
 
     if (accountLocalStateForApp) {
       const appsLocalState = decodeState(accountLocalStateForApp['key-value'])
@@ -98,8 +97,8 @@ function App() {
     setAccAddress(accountInfo.address)
   }
 
-  const selectAddress = async (addr) => {
-    localStorage.setItem("SELECTED_ADDRESS", addr)
+  const selectAddress = async addr => {
+    localStorage.setItem('SELECTED_ADDRESS', addr)
     await fetchGlobalState()
     setAccountModalVisible(false)
   }
@@ -108,22 +107,28 @@ function App() {
     fetchGlobalState()
   }, [])
 
-  const handleTransactionError = (err) => {
-    if (err.toString().includes("overspend")) {
-      const matchStr = err.toString().split(",").at(-1).match(/\{(.*?)\}/)
+  const handleTransactionError = err => {
+    setTransactionIsProcessing(false)
+    if (err.toString().includes('overspend')) {
+      const matchStr = err
+        .toString()
+        .split(',')
+        .at(-1)
+        .match(/\{(.*?)\}/)
       const value = matchStr[1]
       console.info(`Overspend. Tried to spend=${value} Algos`)
-      window.alert(`Tried to overspend. Balance=${accBalance} , Tried to spend=${value}`)
-
-      setTransactionIsProcessing(false)
-      setStakeModalVisible(false)
-      setUnstakeModalVisible(false)
-      fetchGlobalState()
+      setModalErrorMessage(
+        `Tried to overspend. Balance is ALG$${microalgosToAlgos(
+          Number(accBalance)
+        )}, tried to spend ALG$${microalgosToAlgos(Number(value))}`
+      )
       throw err
     }
 
-    if (!err.toString().includes("already opted in"))
+    if (!err.toString().includes('already opted in')) {
+      setModalErrorMessage(err.message)
       throw err
+    }
   }
 
   const stakeWasSubmitted = async amount => {
@@ -161,7 +166,9 @@ function App() {
     window.algosdk.assignGroupID([paymentTxn, appCallTxn])
 
     try {
-      const sendTx = await client.sendRawTransaction(await signTransactionsWithAlgoSigner([paymentTxn, appCallTxn])).do()
+      const sendTx = await client
+        .sendRawTransaction(await signTransactionsWithAlgoSigner([paymentTxn, appCallTxn]))
+        .do()
       await window.algosdk.waitForConfirmation(client, sendTx.txId, 5)
     } catch (err) {
       handleTransactionError(err)
@@ -233,40 +240,46 @@ function App() {
                 type="button"
                 className="btn"
                 value="stake"
-                disabled={stakeModalIsVisible || unstakeModalIsVisible}
-                onClick={() => setStakeModalVisible(!stakeModalIsVisible)}
+                disabled={isAnyModalVisible}
+                onClick={() => {
+                  setModalErrorMessage(null)
+                  setStakeModalVisible(!stakeModalIsVisible)
+                }}
               />
               <input
                 type="button"
                 className="btn"
                 value="unstake"
-                disabled={stakeModalIsVisible || unstakeModalIsVisible}
-                onClick={() => setUnstakeModalVisible(!unstakeModalIsVisible)}
+                disabled={isAnyModalVisible}
+                onClick={() => {
+                  setModalErrorMessage(null)
+                  setUnstakeModalVisible(!unstakeModalIsVisible)
+                }}
               />
             </div>
           </div>
         </div>
         <p style={{ marginTop: '50px' }}>
-          <strong>Account Address: </strong>
+          <strong>account: </strong>
           <span>{accAddress}</span>
         </p>
         <p>
-          <strong>Account Balance: </strong>
+          <strong>balance: </strong>
           <span>ALG$ {microalgosToAlgos(accBalance)}</span>
         </p>
         <input
           type="button"
           className="btn"
-          value="Select Account"
-          disabled={accountModalIsVisible}
+          value="change account"
+          disabled={isAnyModalVisible}
           onClick={() => setAccountModalVisible(!accountModalIsVisible)}
         />
       </section>
       {accountModalIsVisible && (
         <AccountModal
-          title="Accounts"
+          title="accounts"
           onCloseModal={() => setAccountModalVisible(false)}
-          onSelectAddress={(addr) => selectAddress(addr)}
+          onSelectAddress={addr => selectAddress(addr)}
           onSubmit={stakeWasSubmitted}
         />
       )}
@@ -276,6 +289,7 @@ function App() {
           onCloseModal={() => setStakeModalVisible(false)}
           onSubmit={stakeWasSubmitted}
           isLoading={transactionIsProcessing}
+          errorMessage={modalErrorMessage}
         />
       )}
       {unstakeModalIsVisible && (
@@ -284,6 +298,7 @@ function App() {
           onCloseModal={() => setUnstakeModalVisible(false)}
           onSubmit={unstakeWasSubmitted}
           isLoading={transactionIsProcessing}
+          errorMessage={modalErrorMessage}
         />
       )}
     </div>

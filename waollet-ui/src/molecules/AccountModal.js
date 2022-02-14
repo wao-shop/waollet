@@ -2,21 +2,21 @@ import { useState, useEffect } from 'react'
 
 async function loadAccountsFromAlgoSigner() {
   await window.AlgoSigner.connect()
-  const accounts = await window.AlgoSigner.accounts({ledger: process.env.REACT_APP_LEDGER_ID})
+  const accounts = await window.AlgoSigner.accounts({ ledger: process.env.REACT_APP_LEDGER_ID })
   return accounts
 }
 
-
-const Accounts = ({accounts, onSelectAddress}) => (
+const Accounts = ({ accounts, onSelectAddress }) => (
   <>
-    {accounts.map(acc => (<input 
-                            className="btn account-entry" 
-                            onClick={() => onSelectAddress(acc.address)} 
-                            key={acc.address} 
-                            readOnly={true}
-                            value={acc.address}/>)
-                  )
-    }
+    {accounts.map(acc => (
+      <input
+        className="btn account-entry"
+        onClick={() => onSelectAddress(acc.address)}
+        key={acc.address}
+        readOnly={true}
+        value={acc.address}
+      />
+    ))}
   </>
 )
 
@@ -30,13 +30,13 @@ function AccountModal(props) {
   }, [])
 
   return (
-    <div className="account-modal-bd">
-      <div className="account-modal-content">
-        <p style={{ textAlign: 'right', width: '100%' }}>
+    <div className="modal-bd">
+      <div className="modal-content accounts-modal">
+        <div className="close-row">
           <input type="button" value="X" className="btn close" onClick={() => props.onCloseModal?.()} />
-        </p>
+        </div>
         <h3>{props.title}</h3>
-        <Accounts accounts={accountObjects} onSelectAddress={(addr) => props.onSelectAddress?.(addr)} />
+        <Accounts accounts={accountObjects} onSelectAddress={addr => props.onSelectAddress?.(addr)} />
       </div>
     </div>
   )

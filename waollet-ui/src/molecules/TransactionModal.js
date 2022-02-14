@@ -9,10 +9,11 @@ function TransactionModal(props) {
   return (
     <div className="modal-bd">
       <div className="modal-content">
-        <p style={{ textAlign: 'right', width: '100%' }}>
+        <div className="close-row">
           <input type="button" value="X" className="btn close" onClick={() => props.onCloseModal?.()} />
-        </p>
+        </div>
         <h3>{props.title}</h3>
+        {props.errorMessage && <p className="error-message">{props.errorMessage}</p>}
         <label>
           Amount ALG$ <input type="text" value={amount} onChange={e => setAmount(Number(e.target.value) || 0)} />
         </label>
