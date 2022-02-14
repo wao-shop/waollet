@@ -32,7 +32,6 @@ def approval_program():
                 }
             ),
             InnerTxnBuilder.Submit(),
-            App.globalPut(amount_key, current_global_amount - amount_to_unstake),
         )
 
     on_create = Seq(
@@ -87,6 +86,7 @@ def approval_program():
         .Then(
             Seq(
                 withdrawAlgos(Txn.sender(), amount_to_unstake),
+                App.globalPut(amount_key, current_global_amount - amount_to_unstake),
                 App.localPut(
                     Txn.sender(), yieldBalance_key, current_user_yield + amount_to_yield
                 ),
@@ -104,10 +104,28 @@ def approval_program():
         )
     )
 
+    # Withdraw Yield Balance
+    on_claim = Seq(
+        If(current_user_yield > Int(0))
+        .Then(
+            Seq(
+                withdrawAlgos(Txn.sender(), current_user_yield),
+                App.localPut(
+                    Txn.sender(), yieldBalance_key, Int(0)
+                ),
+                Approve(),
+            )
+        )
+        .Else(
+            Reject(),
+        )
+    )
+
     on_call_method = Txn.application_args[0]
     on_call = Cond(
         [on_call_method == Bytes("stake"), on_stake],
         [on_call_method == Bytes("unstake"), on_unstake],
+        [on_call_method == Bytes("claim"), on_claim],
     )
 
     on_delete = (

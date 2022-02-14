@@ -73,7 +73,10 @@ def stake(client: AlgodClient, appID: int, staker: Account, stakeAmount: int) ->
 
     client.send_transactions([signedPayTxn, signedAppCallTxn])
 
-    return waitForTransaction(client, appCallTxn.get_txid())
+    return [
+        waitForTransaction(client, payTxn.get_txid()),
+        waitForTransaction(client, appCallTxn.get_txid()),
+    ]
 
 
 def unstake(
@@ -87,9 +90,6 @@ def unstake(
       staker: The account staking
       stakeAmount: The amount being staked
     """
-    appAddr = get_application_address(appID)
-    appGlobalState = getAppGlobalState(client, appID)
-
     suggestedParams = client.suggested_params()
 
     appCallTxn = transaction.ApplicationCallTxn(
@@ -97,6 +97,32 @@ def unstake(
         index=appID,
         on_complete=transaction.OnComplete.NoOpOC,
         app_args=[b"unstake", (unstakeAmount).to_bytes(8, "big")],
+        sp=suggestedParams,
+    )
+
+    signedAppCallTxn = appCallTxn.sign(staker.getPrivateKey())
+
+    client.send_transaction(signedAppCallTxn)
+
+    return waitForTransaction(client, appCallTxn.get_txid())
+
+
+def claim(client: AlgodClient, appID: int, staker: Account) -> None:
+    """Claim
+
+    Args:
+      client: An algod client
+      appID: the app ID
+      staker: The account staking
+      claimAmount: The amount being claimed
+    """
+    suggestedParams = client.suggested_params()
+
+    appCallTxn = transaction.ApplicationCallTxn(
+        sender=staker.getAddress(),
+        index=appID,
+        on_complete=transaction.OnComplete.NoOpOC,
+        app_args=[b"claim"],
         sp=suggestedParams,
     )
 
