@@ -21,7 +21,7 @@ def approval_program():
         return (staking_balance * rate) / Int(10**8)
 
     @Subroutine(TealType.none)
-    def unstake(receiver: Expr, amount: Expr) -> Expr:
+    def withdrawAlgos(receiver: Expr, amount: Expr) -> Expr:
         return Seq(
             InnerTxnBuilder.Begin(),
             InnerTxnBuilder.SetFields(
@@ -81,7 +81,7 @@ def approval_program():
         If(current_user_amount >= amount_to_unstake)
         .Then(
             Seq(
-                unstake(Txn.sender(), amount_to_unstake),
+                withdrawAlgos(Txn.sender(), amount_to_unstake),
                 App.localPut(
                     Txn.sender(), yieldBalance_key, current_user_yield + amount_to_yield
                 ),
