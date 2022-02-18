@@ -10,6 +10,6 @@ Algorand's Blockchain.
 
 ## Contents
 
-`waollet/contracts.py` - "Smart Contract Application" that get deployed to Algorand Blockchain
-`waollet/main.py` - CLI for interacting with the python functions for creating and interacting with Algorand applications and accounts.
-`waollet/utils.py` - Helper functions
+* `waollet/contracts.py` - "Smart Contract Application" that get deployed to Algorand Blockchain
+* `waollet/main.py` - CLI for interacting with the python functions for creating and interacting with Algorand applications and accounts.
+* `waollet/utils.py` - Helper functions
