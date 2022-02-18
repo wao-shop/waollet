@@ -5,20 +5,17 @@ import './App.css'
 import TransactionModal from './molecules/TransactionModal'
 import TransferModal from './molecules/TransferModal'
 import AccountModal from './molecules/AccountModal'
+import LoadingModal from './molecules/LoadingModal'
 
-const token = process.env.REACT_APP_TOKEN
+const token = {
+  'X-API-Key': process.env.REACT_APP_TOKEN, // PureStake required
+}
 const server = process.env.REACT_APP_SERVER
 const port = process.env.REACT_APP_PORT
 const client = new window.algosdk.Algodv2(token, server, port)
 const APP_ID = Number(process.env.REACT_APP_APP_ID)
 
 const microalgosToAlgos = window.algosdk.microalgosToAlgos
-
-// const STAKER_ACCOUNT_ADDRESS = 'L5BXMJ4WOH2OYCZAFDH4ZFCOWPTJZEOECXLQRJJSGT6UEJB4KAZ5MID7EY'
-// const STAKER_ACCOUNT_MNEMONIC =
-//   'predict giraffe inject reject price relief remain spirit process like siren math bullet awful relief cube you glue clarify tackle during tail law abandon captain'
-//
-//
 
 async function loadAccount() {
   const localAddress = localStorage.getItem('SELECTED_ADDRESS')
@@ -61,6 +58,7 @@ async function makeSureHasOptIn(address, suggestedParams) {
 function App() {
   const [stakeModalIsVisible, setStakeModalVisible] = useState(false)
   const [unstakeModalIsVisible, setUnstakeModalVisible] = useState(false)
+  const [loadingModalIsVisible, setLoadingModalVisible] = useState(false)
   const [accountModalIsVisible, setAccountModalVisible] = useState(false)
   const [transferModalIsVisible, setTransferModalVisible] = useState(false)
   const [transactionIsProcessing, setTransactionIsProcessing] = useState(false)
@@ -72,7 +70,8 @@ function App() {
   const [accBalance, setAccBalance] = useState(0)
   const [accAddress, setAccAddress] = useState('')
 
-  const isAnyModalVisible = stakeModalIsVisible || unstakeModalIsVisible || accountModalIsVisible || transferModalIsVisible
+  const isAnyModalVisible =
+    stakeModalIsVisible || unstakeModalIsVisible || accountModalIsVisible || transferModalIsVisible
 
   const fetchGlobalState = async () => {
     console.log(await client.status().do())
@@ -97,7 +96,7 @@ function App() {
 
     setAccBalance(accountInfo.amount)
     setAccAddress(accountInfo.address)
-    setModalErrorMessage("")
+    setModalErrorMessage('')
   }
 
   const selectAddress = async addr => {
@@ -224,7 +223,7 @@ function App() {
     const firstAccountAddress = account.address
 
     if (!window.algosdk.isValidAddress(to)) {
-      handleTransactionError(new Error("Invalid recipient address."))
+      handleTransactionError(new Error('Invalid recipient address.'))
     }
 
     try {
@@ -242,14 +241,11 @@ function App() {
     })
 
     try {
-
       if (to === firstAccountAddress) {
         throw new Error("Can't transfer to same account.")
       }
 
-      const sendTx = await client
-        .sendRawTransaction(await signTransactionsWithAlgoSigner([paymentTxn]))
-        .do()
+      const sendTx = await client.sendRawTransaction(await signTransactionsWithAlgoSigner([paymentTxn])).do()
       await window.algosdk.waitForConfirmation(client, sendTx.txId, 5)
     } catch (err) {
       handleTransactionError(err)
@@ -261,6 +257,39 @@ function App() {
     fetchGlobalState()
   }
 
+  const claimWasSubmitted = async () => {
+    setTransactionIsProcessing(true)
+    const suggestedParams = await client.getTransactionParams().do()
+
+    const account = await loadAccount()
+    const firstAccountAddress = account.address
+
+    try {
+      await makeSureHasOptIn(firstAccountAddress, suggestedParams)
+    } catch (err) {
+      handleTransactionError(err)
+    }
+
+    const appCallTxn = await window.algosdk.makeApplicationCallTxnFromObject({
+      from: firstAccountAddress,
+      appIndex: APP_ID,
+      onComplete: window.algosdk.AppNoOpTxn,
+      appArgs: [Uint8Array.from('claim'.split('').map(c => c.charCodeAt(0)))],
+      suggestedParams,
+    })
+
+    try {
+      const sendTx = await client.sendRawTransaction(await signTransactionsWithAlgoSigner([appCallTxn])).do()
+
+      await window.algosdk.waitForConfirmation(client, sendTx.txId, 5)
+    } catch (err) {
+      handleTransactionError(err)
+    }
+
+    setTransactionIsProcessing(false)
+    setLoadingModalVisible(false)
+    fetchGlobalState()
+  }
 
   return (
     <div className="App">
@@ -303,6 +332,16 @@ function App() {
                 onClick={() => {
                   setModalErrorMessage(null)
                   setUnstakeModalVisible(!unstakeModalIsVisible)
+                }}
+              />
+              <input
+                type="button"
+                className="btn"
+                value="claim"
+                disabled={isAnyModalVisible}
+                onClick={() => {
+                  setModalErrorMessage(null)
+                  setLoadingModalVisible(!loadingModalIsVisible)
                 }}
               />
             </div>
@@ -362,6 +401,15 @@ function App() {
           title="transfer"
           onCloseModal={() => setTransferModalVisible(false) & setModalErrorMessage(null)}
           onSubmit={transferWasSubmitted}
+          isLoading={transactionIsProcessing}
+          errorMessage={modalErrorMessage}
+        />
+      )}
+      {loadingModalIsVisible && (
+        <LoadingModal
+          amount={myYield}
+          onCloseModal={() => setLoadingModalVisible(false) & setModalErrorMessage(null)}
+          onSubmit={claimWasSubmitted}
           isLoading={transactionIsProcessing}
           errorMessage={modalErrorMessage}
         />
